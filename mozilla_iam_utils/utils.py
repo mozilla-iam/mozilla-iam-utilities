@@ -7,7 +7,19 @@ from auth0.v3.authentication import GetToken
 
 
 def get_auth0_config() -> dict:
-    # load auth0 configuration, ~/.config/auth0/credentials
+    """
+    load auth0 configuration, ~/.config/auth0/credentials.json
+
+    It should look like this:
+    {
+        "client_id": "client_id_here",
+        "client_secret": "client_secret_here",
+        "uri": "auth.mozilla.auth0.com"
+    }
+
+    :return: json version of credentials
+    """
+
     config = os.path.expanduser(os.path.join("~", ".config", "auth0", "credentials.json"))
     if not os.path.exists(config):
         print(f"Can't open {config}, exiting.")
