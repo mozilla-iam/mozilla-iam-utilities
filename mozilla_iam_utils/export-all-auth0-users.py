@@ -2,7 +2,7 @@
 
 import json
 
-from mozilla_iam_utils.utils import get_auth0_config, get_auth0_management_session, get_auth0_token
+from mozilla_iam_utils.utils import get_auth0_config, get_auth0_management_session
 
 
 # first, we need to get an auth0 management API token
@@ -10,7 +10,6 @@ domain = get_auth0_config()["uri"]
 auth0 = get_auth0_management_session()
 
 all_users = {}
-
 page = 0
 
 while True:
