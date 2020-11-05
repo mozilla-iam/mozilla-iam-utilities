@@ -7,12 +7,11 @@ import logging
 from collections import defaultdict
 from deepdiff import DeepDiff
 
-from mozilla_iam_utils.utils import get_auth0_config, get_auth0_management_session, get_auth0_token
+from mozilla_iam_utils.utils import get_auth0_config, get_auth0_management_session
 
 
 # first, we need to get an auth0 management API token
 domain = get_auth0_config()["uri"]
-token = get_auth0_token()
 auth0 = get_auth0_management_session()
 
 CONNECTION_SUPREMACY_ORDER = ("Mozilla-LDAP", "Mozilla-LDAP-Dev", "firefoxaccounts",
