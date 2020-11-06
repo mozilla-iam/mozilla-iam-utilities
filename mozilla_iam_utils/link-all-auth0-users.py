@@ -3,10 +3,12 @@
 import json
 import os
 import logging
+import sys
 
 from collections import defaultdict
 from deepdiff import DeepDiff
 
+from auth0.v3 import Auth0Error
 from mozilla_iam_utils.utils import get_auth0_config, get_auth0_management_session
 
 
@@ -125,6 +127,10 @@ if __name__ == "__main__":
     # hey, how many email addresses do we need to link?
     logging.info(f"Found {len(emails_to_userids)} accounts that require linking.")
 
+    # Just trying to clean up the debugger, don't mind me
+    del(identity)
+    del(user)
+
     # now, we need to go through each of the emails with more than one id, and find the "primary" account
     # that we'll be linking into
     for email, user_ids in emails_to_userids.items():
@@ -166,8 +172,20 @@ if __name__ == "__main__":
                 logging.warning(f"User {secondary_user_id} has app metadata: {secondary_user_app_metadata}, merging into {primary_user_id}")
 
                 # update the primary accounts metadata
-                # auth0.users.update(primary_user_id, {"app_metadata": secondary_user_app_metadata})
+                auth0.users.update(primary_user_id, {"app_metadata": secondary_user_app_metadata})
+
+                logging.info(f"Successfully migrated {secondary_user_id}'s app metadata into {primary_user_id}")
+
 
             # link the accounts
-            # auth0.users.link_user_account(primary_user_id, { "link_with": secondary_user_id})
-            logging.info(f"Linked {secondary_user_id} into {primary_user_id} for {email}")
+            if exists_in_cis == False:
+                try:
+                    auth0.users.link_user_account(primary_user_id, { "provider": user_ids[secondary_user_id]["provider"], "user_id": user_ids[secondary_user_id]["user_id"]})
+
+                    logging.info(f"Linked {secondary_user_id} into {primary_user_id} for {email}")
+                except Auth0Error as e:
+                    if "400" in str(e) or "409" in str(e):
+                        logging.info(f"{secondary_user_id} has already been linked into {primary_user_id} from previous run.")
+                    else:
+                        logging.fatal(f"Linking error attempting to link {secondary_user_id} ({email}) into {primary_user_id}: {e}")
+                        sys.exit(-1)
