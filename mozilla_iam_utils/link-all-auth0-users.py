@@ -76,6 +76,9 @@ if __name__ == "__main__":
             logging.error(f"{user_id} doesn't have a bound email address")
             continue
 
+        if user_id.startswith("auth0|"):
+            continue
+
         email = user["email"]
 
         # add the user_id to the list of known user_ids bound to that email address
@@ -83,6 +86,7 @@ if __name__ == "__main__":
             "app_metadata": user.get("app_metadata", {}),
             "connection": user["identities"][0]["connection"],
             "identities_count": len(user["identities"]),
+            "logins_count": int(user["logins_count"]),
             "provider": user["identities"][0]["provider"],
             "user_id": user_id,
             "user_metadata": user.get("user_metadata", {}),
@@ -146,8 +150,9 @@ if __name__ == "__main__":
         for secondary_user_id in secondary_user_ids:
             primary_user_app_metadata = user_ids[primary_user_id]["app_metadata"]
             secondary_user_app_metadata = user_ids[secondary_user_id]["app_metadata"]
+            secondary_user_logins_count = user_ids[secondary_user_id]["logins_count"]
             secondary_user_user_metadata = user_ids[secondary_user_id]["user_metadata"]
-            exists_in_cis = secondary_user_user_metadata.pop("existsInCIS", True)
+            exists_in_cis = secondary_user_user_metadata.pop("existsInCIS", None)
 
             # Remove useless metadata
             if "groups" in secondary_user_app_metadata and len(secondary_user_app_metadata["groups"]) == 0:
@@ -157,13 +162,16 @@ if __name__ == "__main__":
                 logging.warning(f"User {secondary_user_id} has user metadata: {secondary_user_user_metadata}")
 
             if (primary_user_app_metadata and secondary_user_app_metadata) and DeepDiff(primary_user_app_metadata, secondary_user_app_metadata, ignore_order=True):
-                logging.error("Both primary account and linked account have conflicting app_metadata - aborting")
+                logging.error("Both primary account and linked account have conflicting app_metadata")
 
                 if exists_in_cis:
                     logging.info(f"Secondary account {secondary_user_id} exists in CIS, cannot delete - manually fix.")
                 else:
-                    logging.info(f"Secondary account {secondary_user_id} does not exist in CIS, can delete.")
-                    # auth0.users.delete(secondary_user_id)
+                    logging.info(f"Secondary account {secondary_user_id} does not exist in CIS, deleting.")
+
+                    auth0.users.delete(secondary_user_id)
+
+                    logging.info(f"Successfully deleted secondary account {secondary_user_id}")
 
                 continue
             elif (primary_user_app_metadata and secondary_user_app_metadata) and not DeepDiff(primary_user_app_metadata, secondary_user_app_metadata, ignore_order=True):
@@ -178,7 +186,7 @@ if __name__ == "__main__":
 
 
             # link the accounts
-            if exists_in_cis == False:
+            if exists_in_cis == False or (exists_in_cis is None and secondary_user_logins_count == 1):
                 try:
                     auth0.users.link_user_account(primary_user_id, { "provider": user_ids[secondary_user_id]["provider"], "user_id": user_ids[secondary_user_id]["user_id"]})
 
@@ -189,3 +197,5 @@ if __name__ == "__main__":
                     else:
                         logging.fatal(f"Linking error attempting to link {secondary_user_id} ({email}) into {primary_user_id}: {e}")
                         sys.exit(-1)
+            # elif exists_in_cis == True and "ad|Mozilla-LDAP" not in primary_user_id:
+            #     pass
