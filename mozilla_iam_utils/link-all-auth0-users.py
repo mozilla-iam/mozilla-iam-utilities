@@ -11,6 +11,12 @@ from deepdiff import DeepDiff
 from auth0.v3 import Auth0Error
 from mozilla_iam_utils.utils import get_auth0_config, get_auth0_management_session
 
+#
+# TODO: Currently, auth0 and CIS both treat email addresses as case-sensitive. This is wrong, but internally
+# consistent. Once code has been changed in Auth0 to link account in a case-insensitive manner, this code
+# should be changed to link accounts regardless of case mismatches.
+#
+
 
 # first, we need to get an auth0 management API token
 domain = get_auth0_config()["uri"]
