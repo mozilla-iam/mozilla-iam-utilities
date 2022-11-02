@@ -1,3 +1,7 @@
-auth0-python
-cis_publishers
 deepdiff
+
+# These requirements need to be made available from local checkouts of the
+# relevant git repositories, and are commented out to avoid using pypi.
+
+# auth0-python
+# cis_publishers
